@@ -45,18 +45,6 @@ class Anchors(nn.Module):
             sizes: list of sizes (sqrt of area) of anchors in units of stride
             aspect_ratios: list of aspect ratios (h/w) of anchors
         __init__ function does the necessary precomputations.
-        forward function computes anchors for a given feature map
-
-        Ex. if you are trying the compute the anchor boxes for the above image,
-        you should store a 9*4 tensor in self.anchor_offsets(because we have 9 types of anchor boxes
-        and each anchor box has 4 offsets from the location of the center of the box).
-        HINT: Try using a double for loop to loop over every possible
-        combination of sizes and aspect ratios to find out the coordinates of the anchor box for that particular size and aspect ratio.
-
-        When calculating the width and height of the anchor box for a particular size and aspect ratio, remember that if the anchor box were a square
-        then the length of each side would just be size*stride; however, we want the height and width of our anchor box to have a different
-        width and height depending on the aspect ratio, so think about how you would use the aspect ratio to appropriatly scale the width and height such that w*h = (size*stride)^2 and
-        aspect_ratio = h/w
         """
         super(Anchors, self).__init__()
         self.stride = stride
@@ -69,22 +57,8 @@ class Anchors(nn.Module):
         Args:
             x: feature map of shape (B, C, H, W)
         Returns:
-            anchors: list of anchors in the format (x1, y1, x2, y2)(in other words (xmin, ymin, xmax, ymax)), giving the shape
+            anchors: list of anchors in the format (xmin, ymin, xmax, ymax), giving the shape
             of (B, A*4, H, W) where A is the number of types of anchor boxes we have.
-            Hint: We want to loop over every pixel of the input and use that as the center of our bounding boxes. Then we can apply the offsets for each bounding box that we
-            found earlier to get all the bounding boxes for that pixel. However, remember that this feature map is scaled down from the original image, so
-            when finding the base y, x values(the location of the center of the anchor box with respect to the original image), remember that you need to multiply the current position
-            in our feature map (i,j) by the stride to get what the position of the center would be in the base image.
-            Hint2: the anchor boxes will be identical for all elements of the batch so try just calculating the anchor boxes for one element of the batch and
-                then using torch.repeat to duplicate the tensor B times
-            Hint3, remember to transfer your anchors to the same device that the input x is on before returning(you can access this with x.device). This is so we can use a gpu when training.
-
-            MAKING CODE EFFICIENT: We recommend first just using for loops and to make sure that your logic is correct. However, this will be very slow. Therefore,
-            we recommend using torch.mesh grid to create the grid of all possible y and x values and then adding them to your anchor offsets tensor that you stored from before
-            to get tensors for x1, x2, y1, and y2 for all the anchor boxes. Then you should simply stack those tensors together, reshape them to match the expected output
-            size and use torch.repeat to repeat that tensor B times across the batch dimension.
-            Your final code should be fully verterized and not have any for loops. 
-            Also make sure that when you create a tensor you put it on the same device that x is on.
         """
         B, _, H, W = x.shape
     
@@ -95,13 +69,11 @@ class Anchors(nn.Module):
                 h = size * self.stride / (aspect_ratio**0.5)
                 anchor_offsets.append([-w/2, -h/2, w/2, h/2])
 
+        # Create anchor_offsets tensor on the same device as x
+        anchor_offsets = torch.tensor(anchor_offsets, device=x.device)  # specify device here
 
-        anchor_offsets = torch.tensor(anchor_offsets)
-
-
-        
-        shifts_x = (torch.arange(0, W) * self.stride)
-        shifts_y = (torch.arange(0, H) * self.stride)
+        shifts_x = (torch.arange(0, W, device=x.device) * self.stride)  # specify device
+        shifts_y = (torch.arange(0, H, device=x.device) * self.stride)  # specify device
         shift_y, shift_x = torch.meshgrid(shifts_y, shifts_x, indexing='ij')
 
         shift_x = shift_x.reshape(-1)
@@ -113,7 +85,9 @@ class Anchors(nn.Module):
         anchors = (shifts + anchor_offsets.view(1, -1, 4)).reshape(H, W, -1)
         anchors = anchors.permute(2, 0, 1).reshape(1, -1, H, W)
         anchors = anchors.repeat(B, 1, 1, 1)
-        return anchors
+        
+        # Ensure anchors are on the same device as x
+        return anchors.to(x.device)  # specify device here
 
 
 class RetinaNet(nn.Module):
@@ -228,59 +202,4 @@ class RetinaNet(nn.Module):
             nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1),
             group_norm(256),
             nn.ReLU(),
-            nn.Conv2d(256, num_anchors * 4, kernel_size=3, stride=1, padding=1),
-        )
-
-        # Initialization
-        for modules in [cls_head, bbox_head]:
-            for layer in modules.modules():
-                if isinstance(layer, nn.Conv2d):
-                    torch.nn.init.normal_(layer.weight, mean=0, std=0.01)
-                    torch.nn.init.constant_(layer.bias, 0)
-
-        # Use prior in model initialization to improve stability
-        bias_value = -(math.log((1 - prior_prob) / prior_prob))
-        torch.nn.init.constant_(cls_head[-1].bias, bias_value)
-
-        return cls_head, bbox_head
-
-    def get_ps(self, feats):
-        conv3, conv4, conv5 = feats["conv3"], feats["conv4"], feats["conv5"]
-        p5 = self.p5(conv5)
-        outs = [p5]
-
-        if self.p67:
-            p6 = self.p6(conv5)
-            outs.append(p6)
-
-            p7 = self.p7(p6)
-            outs.append(p7)
-
-        if self.fpn:
-            p4 = self.p4(
-                self.p4_lateral(conv4)
-                + nn.Upsample(size=conv4.shape[-2:], mode="nearest")(p5)
-            )
-            outs.append(p4)
-
-            p3 = self.p3(
-                self.p3_lateral(conv3)
-                + nn.Upsample(size=conv3.shape[-2:], mode="nearest")(p4)
-            )
-            outs.append(p3)
-        # outs = [outs[:]]
-        return outs
-
-    def forward(self, x):
-        with torch.no_grad():
-            feats = self.resnet[0](x)
-
-        feats = self.get_ps(feats)
-
-        # apply the class head and box head on top of layers
-        outs = []
-        for f, a in zip(feats, self.anchors):
-            cls = self.cls_head(f)
-            bbox = self.bbox_head(f)
-            outs.append((cls, bbox, a(f)))
-        return outs
+            nn.Conv2d(256, num_
