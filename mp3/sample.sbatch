@@ -11,8 +11,8 @@
 #SBATCH --gres=gpu:A100                
 ### End Do not change block
 
-#SBATCH --mail-user=NETID@illinois.edu          # replace with your email
-#SBATCH --mail-type=NONE                        # Type of email notifications to send
+#SBATCH --mail-user=jw132@illinois.edu          # replace with your email
+#SBATCH --mail-type=ALL                        # Type of email notifications to send
 
 #SBATCH --output=cs444mp3.out.%j                # Default name of batch job
 # 					        # output file if not set on command line
