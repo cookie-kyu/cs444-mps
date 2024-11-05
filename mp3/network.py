@@ -86,7 +86,35 @@ class Anchors(nn.Module):
             Your final code should be fully verterized and not have any for loops. 
             Also make sure that when you create a tensor you put it on the same device that x is on.
         """
-       B, _, H, W = x.shape
+        # B, _, H, W = x.shape
+    
+        # anchor_offsets = []
+        # for size in self.sizes:
+        #     for aspect_ratio in self.aspect_ratios:
+        #         w = size * self.stride * (aspect_ratio**0.5)
+        #         h = size * self.stride / (aspect_ratio**0.5)
+        #         anchor_offsets.append([-w/2, -h/2, w/2, h/2])
+
+
+        # anchor_offsets = torch.tensor(anchor_offsets)
+
+
+        
+        # shifts_x = (torch.arange(0, W) * self.stride)
+        # shifts_y = (torch.arange(0, H) * self.stride)
+        # shift_y, shift_x = torch.meshgrid(shifts_y, shifts_x, indexing='ij')
+
+        # shift_x = shift_x.reshape(-1)
+        # shift_y = shift_y.reshape(-1)
+
+        # shifts = torch.stack((shift_x, shift_y, shift_x, shift_y), dim=1)
+        # shifts = shifts.unsqueeze(1)
+
+        # anchors = (shifts + anchor_offsets.view(1, -1, 4)).reshape(H, W, -1)
+        # anchors = anchors.permute(2, 0, 1).reshape(1, -1, H, W)
+        # anchors = anchors.repeat(B, 1, 1, 1)
+        # return anchors
+        B, _, H, W = x.shape
 
         anchor_offsets = []
         for size in self.sizes:
@@ -109,6 +137,7 @@ class Anchors(nn.Module):
         anchors = (shifts + anchor_offsets.view(1, -1, 4)).reshape(H, W, -1)
         anchors = anchors.permute(2, 0, 1).reshape(1, -1, H, W).repeat(B, 1, 1, 1)
         return anchors
+
 
 class RetinaNet(nn.Module):
     def __init__(self, p67=False, fpn=False,num_anchors=9):
