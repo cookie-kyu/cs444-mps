@@ -16,7 +16,7 @@ import time
 
 FLAGS = flags.FLAGS
 flags.DEFINE_float('lr', 1e-4, 'Learning Rate')
-flags.DEFINE_float('momentum', 0.9, 'Momentum for optimizer')
+flags.DEFINE_float('momentum', 0.84, 'Momentum for optimizer')
 flags.DEFINE_float('weight_decay', 1e-4, 'Weight Deacy for optimizer')
 flags.DEFINE_string('output_dir', 'runs/retina-net-basic/', 'Output Directory')
 flags.DEFINE_integer('batch_size', 1, 'Batch Size')
@@ -85,8 +85,8 @@ def main(_):
     scheduler = torch.optim.lr_scheduler.ChainedScheduler([warmup_scheduler, main_scheduler])
 
 #############
-    scheduler = torch.optim.lr_scheduler.MultiStepLR(
-        optimizer, milestones=milestones, gamma=0.1)
+    # scheduler = torch.optim.lr_scheduler.MultiStepLR(
+    #     optimizer, milestones=milestones, gamma=0.1)
     
     optimizer.zero_grad()
     dataloader_iter = None
@@ -132,7 +132,7 @@ def main(_):
         total_loss.backward()
 
         ####### graidnet clippy
-        #torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=5.0)
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=2.0)
         #######
         optimizer.step()
         optimizer.zero_grad()
