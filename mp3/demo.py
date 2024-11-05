@@ -29,6 +29,7 @@ flags.DEFINE_integer('preload_images', 1,
 flags.DEFINE_multi_integer('lr_step', [60000, 80000], 'Iterations to reduce learning rate')
 
 log_every = 20
+warmup_iters = 2000
 
 def setup_logging():
     log_formatter = logging.Formatter(
@@ -48,6 +49,8 @@ def logger(tag, value, global_step):
        logging.info(f'  {tag:>15s} [{global_step:07d}]: {value:5f}')
 
 def main(_):
+    
+    print(torch.cuda.is_available())
     setup_logging()
     torch.set_num_threads(4)
     torch.manual_seed(FLAGS.seed)
@@ -64,9 +67,9 @@ def main(_):
     model = RetinaNet(p67=True, fpn=True)
 
     num_classes = dataset_train.num_classes
-    device = torch.device('cuda:0')
+    #device = torch.device('cuda:0')
     # For Mac users
-    # device = torch.device("mps") 
+    device = torch.device("mps") 
     model.to(device)
 
 
@@ -76,8 +79,14 @@ def main(_):
                                 weight_decay=FLAGS.weight_decay)
     
     milestones = [int(x) for x in FLAGS.lr_step]
-    scheduler = torch.optim.lr_scheduler.MultiStepLR(
-        optimizer, milestones=milestones, gamma=0.1)
+    ####### new
+    warmup_scheduler = torch.optim.lr_scheduler.LinearLR(optimizer, start_factor=0.0001, end_factor=1, total_iters=warmup_iters)
+    main_scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=milestones, gamma=0.1)
+    scheduler = torch.optim.lr_scheduler.ChainedScheduler([warmup_scheduler, main_scheduler])
+
+#############
+    # scheduler = torch.optim.lr_scheduler.MultiStepLR(
+    #     optimizer, milestones=milestones, gamma=0.1)
     
     optimizer.zero_grad()
     dataloader_iter = None
@@ -122,6 +131,9 @@ def main(_):
         
         total_loss.backward()
 
+        ####### graidnet clippy
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=5.0)
+        #######
         optimizer.step()
         optimizer.zero_grad()
         scheduler.step()
