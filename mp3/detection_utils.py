@@ -279,4 +279,4 @@ def nms(bboxes, scores, threshold=0.5):
         
         sorted_indices = remaining_indices
 
-    return torch.tensor(keep, device=bboxes.device)  
+    return torch.tensor(keep, device=bboxes.device, dtype=torch.int)  
