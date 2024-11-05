@@ -132,7 +132,7 @@ def main(_):
         total_loss.backward()
 
         ####### graidnet clippy
-        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=2.0)
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
         #######
         optimizer.step()
         optimizer.zero_grad()
