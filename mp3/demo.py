@@ -16,7 +16,7 @@ import time
 
 FLAGS = flags.FLAGS
 flags.DEFINE_float('lr', 1e-4, 'Learning Rate')
-flags.DEFINE_float('momentum', 0.9, 'Momentum for optimizer')
+flags.DEFINE_float('momentum', 0.85, 'Momentum for optimizer')
 flags.DEFINE_float('weight_decay', 1e-4, 'Weight Deacy for optimizer')
 flags.DEFINE_string('output_dir', 'runs/retina-net-basic/', 'Output Directory')
 flags.DEFINE_integer('batch_size', 1, 'Batch Size')
