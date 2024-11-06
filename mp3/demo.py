@@ -16,7 +16,7 @@ import time
 
 FLAGS = flags.FLAGS
 flags.DEFINE_float('lr', 1e-4, 'Learning Rate')
-flags.DEFINE_float('momentum', 0.84, 'Momentum for optimizer')
+flags.DEFINE_float('momentum', 0.85, 'Momentum for optimizer')
 flags.DEFINE_float('weight_decay', 1e-4, 'Weight Deacy for optimizer')
 flags.DEFINE_string('output_dir', 'runs/retina-net-basic/', 'Output Directory')
 flags.DEFINE_integer('batch_size', 1, 'Batch Size')
@@ -80,7 +80,7 @@ def main(_):
     
     milestones = [int(x) for x in FLAGS.lr_step]
     ####### new
-    warmup_scheduler = torch.optim.lr_scheduler.LinearLR(optimizer, start_factor=0.0001, end_factor=1, total_iters=warmup_iters)
+    warmup_scheduler = torch.optim.lr_scheduler.LinearLR(optimizer, start_factor=0.0000001, end_factor=1, total_iters=warmup_iters)
     main_scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=milestones, gamma=0.1)
     scheduler = torch.optim.lr_scheduler.ChainedScheduler([warmup_scheduler, main_scheduler])
 

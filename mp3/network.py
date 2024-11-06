@@ -32,6 +32,7 @@ def group_norm(out_channels, affine=True, divisor=1):
     )
 
 
+
 class Anchors(nn.Module):
     def __init__(
         self,
@@ -123,7 +124,6 @@ class Anchors(nn.Module):
                 h = size * self.stride / (aspect_ratio**0.5)
                 anchor_offsets.append([-w/2, -h/2, w/2, h/2])
 
-        # Ensure anchor offsets are on the same device as x
         anchor_offsets = torch.tensor(anchor_offsets, device=x.device)
 
         shifts_x = (torch.arange(0, W, device=x.device) * self.stride)

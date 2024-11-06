@@ -49,4 +49,4 @@ mkdir -p ${OUTPUT_DIR}
 LOG_FILE="${OUTPUT_DIR}/log.txt"
 
 
-python demo.py --seed 1 --lr 1e-2 --batch_size 1 --output_dir ${OUTPUT_DIR} --coco_dir /projects/illinois/class/cs444/saurabhg/fa2024/mp3/coco-animal 2>&1 | tee ${LOG_FILE}
+python demo.py --seed 1 --lr 1e-2 --batch_size 20 --output_dir ${OUTPUT_DIR} --coco_dir /projects/illinois/class/cs444/saurabhg/fa2024/mp3/coco-animal 2>&1 | tee ${LOG_FILE}
